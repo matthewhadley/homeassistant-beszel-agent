@@ -1,3 +1,9 @@
+## [0.12.0] - 2025-08-08
+
+### Added
+
+- Enable Beszel-Agent auto-update
+
 ## [0.11.0] - 2025-05-01
 
 ### Added
