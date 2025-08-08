@@ -10,4 +10,4 @@ declare __BASHIO_LOG_TIMESTAMP="%Y-%m-%d %T"
 bashio::log.info "Beszel-Agent Home Assistant Add-On $VERSION"
 bashio::log.info "Beszel-Agent $BESZEL_AGENT_VERSION"
 
-PORT=45876 KEY="$PUBLIC_KEY" ./beszel-agent --auto-update
+PORT=45876 KEY="$PUBLIC_KEY" ./beszel-agent

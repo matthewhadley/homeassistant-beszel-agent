@@ -1,3 +1,9 @@
+## [0.12.1] - 2025-08-08
+
+### Added
+
+- rollback Beszel-Agent auto-update approach
+
 ## [0.12.0] - 2025-08-08
 
 ### Added
