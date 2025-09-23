@@ -21,4 +21,6 @@ jobs:
           BESZEL_AGENT_VERSION=$(curl -s "https://api.github.com/repos/henrygd/beszel/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
           echo "BESZEL AGENT VERSION: $BESZEL_AGENT_VERSION"
           sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
+          TODAY=$(date +%Y-%m-%d)
+          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent\n\n---\n" ./beszel-agent/CHANGELOG.md
           cat ./beszel-agent/config.yaml
