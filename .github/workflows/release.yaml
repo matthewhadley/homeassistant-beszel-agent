@@ -22,6 +22,6 @@ jobs:
           echo "BESZEL AGENT VERSION: $BESZEL_AGENT_VERSION"
           sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
           TODAY=$(date +%Y-%m-%d)
-          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent\n\n---\n" ./beszel-agent/CHANGELOG.md
+          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n\n" ./beszel-agent/CHANGELOG.md
           cat ./beszel-agent/config.yaml
           cat ./beszel-agent/CHANGELOG.md
