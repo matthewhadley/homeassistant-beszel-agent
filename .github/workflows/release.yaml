@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Get latest release version
+        id: get_version
+        run: |
+          BESZEL_AGENT_VERSION=$(curl -s "https://api.github.com/repos/henrygd/beszel/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo $BESZEL_AGENT_VERSION
