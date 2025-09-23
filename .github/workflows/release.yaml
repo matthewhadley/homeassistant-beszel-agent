@@ -2,7 +2,10 @@ name: Release
 
 on:
   workflow_dispatch:
-  
+
+permissions:
+    contents: write  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,11 +26,17 @@ jobs:
           CURRENT=$(grep version < ./beszel-agent/config.yaml | grep -o '[0-9\.]*');
           if [[ "$CURRENT" != "$BESZEL_AGENT_VERSION" ]]; then
             echo "New version detected: $BESZEL_AGENT_VERSION (old version: $CURRENT)"            
-            sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
+            # sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
             TODAY=$(date +%Y-%m-%d)
-            sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n\n" ./beszel-agent/CHANGELOG.md
-            cat ./beszel-agent/config.yaml
-            cat ./beszel-agent/CHANGELOG.md
+            # sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n\n" ./beszel-agent/CHANGELOG.md
+            # cat ./beszel-agent/config.yaml
+            # cat ./beszel-agent/CHANGELOG.md
+            echo $TODAY > test.txt
+            git config user.name  "duff-robot"
+            git config user.email "matthew.hadley+duff-robot@gmail.com"
+            git add -A
+            git commit -m "chore: auto-update" || exit 0
+            git push
           else
             echo "No version change"
           fi          
