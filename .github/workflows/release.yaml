@@ -22,7 +22,7 @@ jobs:
           echo "BESZEL AGENT VERSION: $BESZEL_AGENT_VERSION"
           CURRENT=$(grep version < ./beszel-agent/config.yaml | grep -o '[0-9\.]*');
           if [[ "$CURRENT" != "$BESZEL_AGENT_VERSION" ]]; then
-            echo "New version detected: $BESZEL_AGENT_VERSION"            
+            echo "New version detected: $BESZEL_AGENT_VERSION (old version: $CURRENT)"            
             sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
             TODAY=$(date +%Y-%m-%d)
             sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n\n" ./beszel-agent/CHANGELOG.md
