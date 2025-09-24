@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  schedule:
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -35,8 +37,8 @@ jobs:
         if: env.VERSION_BUMP == 'true'
         run: |
           sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
-          TODAY=$(date +%Y-%m-%d)
-          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n\n" ./beszel-agent/CHANGELOG.md
+          TODAY=$(TZ=America/Chicago date +%Y-%m-%d)
+          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n" ./beszel-agent/CHANGELOG.md
       - name: Commit Changes
         if: env.VERSION_BUMP == 'true'
         run: |
