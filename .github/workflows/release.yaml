@@ -45,7 +45,7 @@ jobs:
           git config user.name  "duff-robot"
           git config user.email "matthew.hadley+duff-robot@gmail.com"
           git add -A
-          git commit -m "auto-update to" || exit 0
+          git commit -m "auto-update to v$BESZEL_AGENT_VERSION" || exit 0
           git push
       - name: Login to DockerHub
         if: env.VERSION_BUMP == 'true'
