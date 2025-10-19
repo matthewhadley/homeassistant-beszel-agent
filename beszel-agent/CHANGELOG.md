@@ -1,3 +1,9 @@
+## [0.14.0] - 2025-10-19
+
+### Updated
+
+- Updated Beszel Agent to v0.14.0
+
 ## [0.13.2] - 2025-10-10
 
 ### Updated
