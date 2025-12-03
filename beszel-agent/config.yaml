@@ -18,5 +18,4 @@ arch:
   - amd64
   - armhf
   - armv7
-  - i386
 image: "matthewhadley/homeassistant-beszel-agent-{arch}"
