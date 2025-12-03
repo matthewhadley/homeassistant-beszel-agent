@@ -1,0 +1,63 @@
+name: Auto Publish From Upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Check for latest release version
+        id: get_version
+        run: |
+          BESZEL_AGENT_VERSION=$(curl -s "https://api.github.com/repos/henrygd/beszel/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          echo "BESZEL AGENT VERSION: $BESZEL_AGENT_VERSION"
+          CURRENT=$(grep version < ./beszel-agent/config.yaml | grep -o '[0-9\.]*');
+          if [[ "$CURRENT" != "$BESZEL_AGENT_VERSION" ]]; then
+            echo "New version detected: $BESZEL_AGENT_VERSION (old version: $CURRENT)"
+            echo VERSION_BUMP=true >> $GITHUB_ENV;
+            echo "BESZEL_AGENT_VERSION=$BESZEL_AGENT_VERSION" >> $GITHUB_ENV;
+          else
+            echo "No version change"
+          fi
+      - name: Update to latest release version
+        if: env.VERSION_BUMP == 'true'
+        run: |
+          sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
+          TODAY=$(TZ=America/Chicago date +%Y-%m-%d)
+          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n" ./beszel-agent/CHANGELOG.md
+      - name: Commit Changes
+        if: env.VERSION_BUMP == 'true'
+        run: |
+          git config user.name  "duff-robot"
+          git config user.email "matthew.hadley+duff-robot@gmail.com"
+          git add -A
+          git commit -m "auto-update to v$BESZEL_AGENT_VERSION" || exit 0
+          git push
+      - name: Login to DockerHub
+        if: env.VERSION_BUMP == 'true'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish
+        if: env.VERSION_BUMP == 'true'
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --amd64 --aarch64 \
+            --target $(find . -type f -name "Dockerfile" -exec dirname {} \; | awk -F'/' '{print $NF}') \
+            --docker-hub ${{ secrets.DOCKERHUB_USERNAME }}
