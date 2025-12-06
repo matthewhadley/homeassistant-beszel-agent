@@ -7,7 +7,7 @@ PUBLIC_KEY="$(bashio::config 'public_key')"
 # add date to default bashio log timestamp
 declare __BASHIO_LOG_TIMESTAMP="%Y-%m-%d %T"
 
-bashio::log.info "Beszel-Agent Home Assistant Add-On $VERSION"
+# bashio::log.info "Beszel-Agent Home Assistant Add-On $VERSION"
 bashio::log.info "Beszel-Agent $BESZEL_AGENT_VERSION"
 
 # Optional HUB_URL
