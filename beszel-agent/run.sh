@@ -20,7 +20,12 @@ if bashio::config.has_value 'token'; then
     export TOKEN="$(bashio::config 'token')"
 fi
 
-PORT="$(bashio::config 'port')"
+# Optional PORT with default
+if bashio::config.has_value 'port'; then
+    PORT="$(bashio::config 'port')"
+else
+    PORT="45876"
+fi
 
 # Run agent
-PORT="${PORT:-45876}" KEY="$PUBLIC_KEY" ./beszel-agent
+PORT="${PORT}" KEY="$PUBLIC_KEY" ./beszel-agent
