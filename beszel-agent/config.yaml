@@ -13,6 +13,9 @@ options:
   public_key: null
 schema:
   public_key: str
+  hub_url: str?
+  port: str?
+  token: str?
 arch:
   - aarch64
   - amd64

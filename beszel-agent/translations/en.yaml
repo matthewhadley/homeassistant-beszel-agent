@@ -4,3 +4,15 @@ configuration:
     name: Public Key
     description: >-
       Agent Public Key
+  hub_url:
+    name: Beszel Hub URL
+    description: >-
+      Optional: URL of your Beszel Hub
+  port:
+    name: Port
+    description: >-
+      Optional: Port for the Beszel-Agent to use
+  token:
+    name: Token
+    description: >-
+      Optional: Beszel Token
