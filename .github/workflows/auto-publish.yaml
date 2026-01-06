@@ -24,6 +24,10 @@ jobs:
         id: get_version
         run: |
           BESZEL_AGENT_VERSION=$(curl -s "https://api.github.com/repos/henrygd/beszel/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          if  [ "$BESZEL_AGENT_VERSION" == "" ]; then
+            echo "Error: Failed to detect latest BESZEL_AGENT_VERSION";
+            exit 1;
+          fi
           echo "BESZEL AGENT VERSION: $BESZEL_AGENT_VERSION"
           CURRENT=$(grep version < ./beszel-agent/config.yaml | grep -o '[0-9\.]*');
           if [[ "$CURRENT" != "$BESZEL_AGENT_VERSION" ]]; then
