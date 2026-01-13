@@ -1,8 +1,8 @@
-## [] - 2026-01-06
+## [0.18.2] - 2026-01-12
 
 ### Updated
 
-- Updated Beszel Agent to v
+- Updated Beszel Agent to v0.18.2
 
 ## [0.17.0] - 2025-12-03
 
