@@ -2,7 +2,8 @@ ARG BUILD_FROM
 FROM $BUILD_FROM
 
 COPY config.yaml /
-RUN grep version < config.yaml | grep -oe '[0-9\.]*' > BESZEL_AGENT_VERSION && rm config.yaml
+# use version from add-on manifest and prepend a "v" (used in download path)
+RUN grep version < config.yaml | grep -oe '[0-9\.]*' | sed 's/^/v/' > BESZEL_AGENT_VERSION && rm config.yaml
 
 COPY run.sh /
 RUN chmod a+x /run.sh
