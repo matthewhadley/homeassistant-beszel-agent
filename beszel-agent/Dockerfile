@@ -1,5 +1,4 @@
-ARG BUILD_FROM
-FROM $BUILD_FROM
+FROM ghcr.io/home-assistant/base:latest
 
 COPY config.yaml /
 # use version from add-on manifest and prepend a "v" (used in download path)

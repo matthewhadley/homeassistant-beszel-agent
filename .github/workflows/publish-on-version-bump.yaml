@@ -1,45 +1,89 @@
 name: Publish On Version Bump
-on: push
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - beszel-agent/**
+      - .github/workflows/publish-on-version-bump.yaml
+  # Also started by auto-publish.yaml, whose pushes don't trigger workflows
+  workflow_dispatch:
+
+env:
+  ADDON_DIR: beszel-agent
+  DOCKERHUB_NAMESPACE: matthewhadley
+  IMAGE_NAME: homeassistant-beszel-agent
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    name: Publish On Version Bump
+  init:
+    name: Check for version bump
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Check Version Bump
-        id: check_version_bump
+      - uses: actions/checkout@v7
+
+      # A version is new when any arch is missing its tag on Docker Hub, which
+      # also catches a bump pushed alongside later commits, or a failed publish.
+      - name: Compare config.yaml version with Docker Hub
+        id: version
         run: |
-          target=$(find . -type f -name "config.yaml" -exec dirname {} \; | awk -F'/' '{print $NF}')
-          c=$(grep version < ${target}/config.yaml | grep -o '[0-9\.]*');
-          p=$(git show HEAD~1:${target}/config.yaml 2> /dev/null)
-          if [ $? -eq 128 ]; then
-            p=0
-          else
-            p=$(echo "$p" | grep version | grep -o '[0-9\.]*');
-          fi;
-          echo "Current version: $c"
-          echo " Commit version: $p"
-          if [[ ! -z "$c" && "$c" != "$p" ]]; then
-            echo "New version detected: $c"
-            echo VERSION_BUMP=true >> $GITHUB_ENV;
-          else
-            echo "No version change"
-          fi
-      - name: Login to DockerHub
-        if: env.VERSION_BUMP == 'true'
-        uses: docker/login-action@v2
+          version=$(yq -r '.version' "${ADDON_DIR}/config.yaml")
+          echo "Add-on version: ${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+          publish=false
+          for arch in amd64 aarch64; do
+            url="https://hub.docker.com/v2/namespaces/${DOCKERHUB_NAMESPACE}/repositories/${IMAGE_NAME}-${arch}/tags/${version}"
+            status=$(curl -s -o /dev/null -w '%{http_code}' "${url}")
+            case "${status}" in
+              200) echo "${arch}: ${version} already published" ;;
+              404) echo "${arch}: ${version} not published"; publish=true ;;
+              *) echo "::error::Docker Hub returned ${status} for ${url}"; exit 1 ;;
+            esac
+          done
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.arch }} image
+    needs: init
+    if: needs.init.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-24.04
+          - arch: aarch64
+            os: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+
+      # skip-existing stops a re-run from overwriting an arch that already
+      # published this version.
+      - name: Build and publish image
+        uses: home-assistant/builder/actions/build-image@2026.09.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Publish
-        if: env.VERSION_BUMP == 'true'
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --amd64 --aarch64 \
-            --target $(find . -type f -name "Dockerfile" -exec dirname {} \; | awk -F'/' '{print $NF}') \
-            --docker-hub ${{ secrets.DOCKERHUB_USERNAME }}
+          arch: ${{ matrix.arch }}
+          context: ${{ env.ADDON_DIR }}
+          container-registry: docker.io
+          container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          container-registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
+          image: docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}-${{ matrix.arch }}
+          image-tags: |
+            ${{ needs.init.outputs.version }}
+            latest
+          version: ${{ needs.init.outputs.version }}
+          skip-existing: ${{ needs.init.outputs.version }}
+          push: "true"
+          cosign: "false"
+          labels: |
+            io.hass.type=addon
+            io.hass.name=Beszel-Agent
+            io.hass.description=Beszel-Agent for Home Assistant
+            io.hass.url=https://github.com/matthewhadley/homeassistant-beszel-agent

@@ -6,62 +6,61 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  update:
+    name: Update to latest Beszel release
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write
+      contents: write # To push the version bump
+      actions: write # To start the publish workflow
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
+      - uses: actions/checkout@v7
 
       - name: Check for latest release version
         id: get_version
         run: |
-          BESZEL_AGENT_VERSION=$(curl -s "https://api.github.com/repos/henrygd/beszel/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-          if  [ "$BESZEL_AGENT_VERSION" == "" ]; then
-            echo "Error: Failed to detect latest BESZEL_AGENT_VERSION";
-            exit 1;
+          latest=$(gh api repos/henrygd/beszel/releases/latest --jq '.tag_name')
+          latest=${latest#v}
+          if [[ -z "${latest}" ]]; then
+            echo "::error::Failed to detect latest Beszel release"
+            exit 1
           fi
-          echo "BESZEL AGENT VERSION: $BESZEL_AGENT_VERSION"
-          CURRENT=$(grep version < ./beszel-agent/config.yaml | grep -o '[0-9\.]*');
-          if [[ "$CURRENT" != "$BESZEL_AGENT_VERSION" ]]; then
-            echo "New version detected: $BESZEL_AGENT_VERSION (old version: $CURRENT)"
-            echo VERSION_BUMP=true >> $GITHUB_ENV;
-            echo "BESZEL_AGENT_VERSION=$BESZEL_AGENT_VERSION" >> $GITHUB_ENV;
+          current=$(yq -r '.version' beszel-agent/config.yaml)
+          echo "Latest Beszel release: ${latest}"
+          echo "  Add-on version: ${current}"
+          if [[ "${current}" != "${latest}" ]]; then
+            echo "New version detected: ${latest}"
+            echo "version=${latest}" >> "$GITHUB_OUTPUT"
           else
             echo "No version change"
           fi
+
       - name: Update to latest release version
-        if: env.VERSION_BUMP == 'true'
+        if: steps.get_version.outputs.version
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
         run: |
-          sed -i "s/^version: *\".*\"/version: \"$BESZEL_AGENT_VERSION\"/" ./beszel-agent/config.yaml
-          TODAY=$(TZ=America/Chicago date +%Y-%m-%d)
-          sed -i "1i ## [$BESZEL_AGENT_VERSION] - $TODAY\n\n### Updated\n\n- Updated Beszel Agent to v$BESZEL_AGENT_VERSION\n" ./beszel-agent/CHANGELOG.md
-      - name: Commit Changes
-        if: env.VERSION_BUMP == 'true'
+          sed -i "s/^version: *\".*\"/version: \"${VERSION}\"/" beszel-agent/config.yaml
+          today=$(TZ=America/Chicago date +%Y-%m-%d)
+          sed -i "1i ## [${VERSION}] - ${today}\n\n### Updated\n\n- Updated Beszel Agent to v${VERSION}\n" beszel-agent/CHANGELOG.md
+
+      - name: Commit changes
+        if: steps.get_version.outputs.version
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
         run: |
-          git config user.name  "duff-robot"
+          git config user.name "duff-robot"
           git config user.email "matthew.hadley+duff-robot@gmail.com"
-          git add -A
-          git commit -m "auto-update to v$BESZEL_AGENT_VERSION" || exit 0
+          git add beszel-agent/config.yaml beszel-agent/CHANGELOG.md
+          git commit -m "auto-update to v${VERSION}"
           git push
-      - name: Login to DockerHub
-        if: env.VERSION_BUMP == 'true'
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Pushes made with GITHUB_TOKEN don't trigger workflows, so start the
+      # publish explicitly; it checks out the commit just pushed.
       - name: Publish
-        if: env.VERSION_BUMP == 'true'
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --amd64 --aarch64 \
-            --target $(find . -type f -name "Dockerfile" -exec dirname {} \; | awk -F'/' '{print $NF}') \
-            --docker-hub ${{ secrets.DOCKERHUB_USERNAME }}
+        if: steps.get_version.outputs.version
+        run: gh workflow run publish-on-version-bump.yaml --ref "${GITHUB_REF_NAME}"
