@@ -2,7 +2,7 @@ name: Publish On Version Bump
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - beszel-agent/**
       - .github/workflows/publish-on-version-bump.yaml
